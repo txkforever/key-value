@@ -1,75 +1,108 @@
 #include <stdio.h>
 #include"TSql.h"
+#include "HasCode.h"
+#include "bplustree.h"
 
-
-bool TSql::open(const std::string& sql_path)
+template<typename T>
+int TSql::getType()const
 {
-	bool flag = true;
-
-	FILE* fp = nullptr;
-	this->m_sqlPath = sql_path;
-
-	fopen_s(&fp, sql_path.c_str(), "r");
-	if (fp == nullptr)return flag;
-	try
-	{
-		int index = 0;
-		while (!feof(fp))
-		{
-			/*
-			* 1.key的长度
-			* 2.将key的值取出
-			* 3.将key值存入m_datas中
-			*/
-			int key_len = 0;
-			fread_s(&key_len, 1, 1, 1, fp);
-
-			if (key_len == 0)continue;
-
-			char* key = new char[key_len + 1];
-			fread_s(key, key_len, key_len, 1, fp);
-			key[key_len] = 0;
-			m_datas[index].key = std::string(key);
-			delete[] key;
-			key = nullptr;
-
-			/*
-			* 获取key对应的string value，如果有的话
-			*/
-			int value_str_len = 0;
-			fread_s(&value_str_len, 1, 1, 1, fp);
-
-			if (0 != value_str_len)
-			{
-				char* value_str = new char[value_str_len + 1];
-				fread_s(value_str, value_str_len, value_str_len, 1, fp);
-				value_str[value_str_len] = 0;
-				m_datas[index].value_str = std::string(value_str);
-				delete[] value_str;
-				value_str = nullptr;
-			}
-
-			//key - int
-			int value_int = 0;
-			fread_s(&value_int, 4, 4, 1, fp);
-			m_datas[index].value_int = value_int;
-
-			++index;
-		}
-		fclose(fp);
-		fp = nullptr;
-	}
-	catch (std::exception e)
-	{
-		flag = false;
-		if (fp != nullptr) {
-			fclose(fp);
-			fp = nullptr;
-		}
-	}
-	
-	return flag;
+	return typeid(T) == typeid(int) ? 0 : 1;
 }
+
+template<typename T>
+void TSql::set(const std::string& key, const T& value)
+{
+	unsigned long iKey = HashString(key, 1);
+	int type = getType<T>();
+	SqlData<T>* pItem = static_cast<SqlData<T>*>(bplus_tree_get(m_pTree, iKey, type));
+
+	if (pItem == nullptr)
+	{
+		bplus_tree_put(m_pTree, iKey, nullptr, type);
+
+		pItem = new SqlData<T>();
+		pItem->value = value; 
+		bplus_tree_put(m_pTree, iKey, pItem, type);
+	}
+	else
+	{
+		pItem->value = value;
+	}
+}
+
+template <typename T>
+T TSql::get(const std::string& key)
+{
+	unsigned long iKey = HashString(key, 1);
+	int type = getType<T>();
+	SqlData<T>* pItem = static_cast<SqlData<T>*>(bplus_tree_get(m_pTree, iKey, type));
+
+	if (pItem == nullptr)
+	{
+		return T();
+	}
+	else
+	{
+		return pItem->value;
+	}
+}
+
+
+bool TSql::open(const std::string& sqlPath)
+{
+	FILE* fp = nullptr;
+	m_sqlPath = sqlPath;
+
+	fopen_s(&fp, sqlPath.c_str(), "r");
+	if (fp == nullptr)
+	{
+		return true;
+	}
+
+	while (!feof(fp))
+	{
+		unsigned long key = 0;
+		fread_s(&key, sizeof(unsigned long), sizeof(unsigned long), 1, fp);
+
+		if (key == 0)
+		{
+			continue;
+		}
+
+		int type = 0;
+		fread_s(&type, 1, 1, 1, fp);
+
+		if (type == 0)
+		{
+			int value = 0;
+			fread_s(&value, sizeof(int), sizeof(int), 1, fp);
+
+			SqlData<int>* pItem = new SqlData<int>();
+			pItem->value = value;
+
+			bplus_tree_put(m_pTree, key, pItem, type);
+		}
+		else if (type == 1)
+		{
+			int len = 0;
+			fread_s(&len, 1, 1, 1, fp);
+			char* value = new char[len + 1];
+			fread_s(value, len, len, 1, fp);
+			value[len] = 0;
+
+			SqlData<std::string>* pItem = new SqlData<std::string>();
+			pItem->value = std::string(value);
+			delete[] value;
+//			bplus_tree_put(m_pTree,key,pItem)
+			bplus_tree_put(m_pTree, key, pItem, type);
+		}
+	}
+
+	fclose(fp);
+
+	return true;
+}
+
 void TSql::close()
 {
 	FILE* fp = nullptr;
@@ -80,92 +113,32 @@ void TSql::close()
 		return;
 	}
 
-	for (int i = 0; i < TSql::DATA_MAX_COUNT; ++i)
+	struct bplus_leaf *leaf = (struct bplus_leaf *)m_pTree->head[0];
+	if (leaf != NULL)
 	{
-		int key_len = m_datas[i].key.length();
-		fwrite(&key_len, 1, 1, fp);
-
-		if (key_len == 0)
+		while (leaf != NULL)
 		{
-			continue;
+			for (int j = 0; j < leaf->entries; ++j)
+			{
+				fwrite(&leaf->key[j], sizeof(unsigned long), 1, fp);
+				fwrite(&leaf->datatype[j], 1, 1, fp);
+
+				if (leaf->datatype[j] == 0) // int
+				{
+					SqlData<int>* pItem = reinterpret_cast<SqlData<int>*>(leaf->data[j]);
+					fwrite(&pItem->value, sizeof(int), 1, fp);
+				}
+				else if (leaf->datatype[j] == 1) // string
+				{
+					SqlData<std::string>* pItem = reinterpret_cast<SqlData<std::string>*>(leaf->data[j]);
+					int len = pItem->value.length();
+					fwrite(&len, 1, 1, fp);
+					fwrite(pItem->value.c_str(), len, 1, fp);
+				}
+			}
+			leaf = leaf->next;
 		}
-
-		fwrite(m_datas[i].key.c_str(), key_len, 1, fp);
-
-		int value_len = m_datas[i].value_str.length();
-		fwrite(&value_len, 1, 1, fp);
-
-		if (value_len != 0)
-		{
-			fwrite(m_datas[i].value_str.c_str(), value_len, 1, fp);
-		}
-
-		fwrite(&m_datas[i].value_int, 4, 1, fp);
 	}
 
 	fclose(fp);
 }
-std::string TSql::getStr(const std::string& key) const
-{
-	for (int i = 0; i < TSql::DATA_MAX_COUNT; ++i)
-	{
-		if (m_datas[i].key == key)
-		{
-			return m_datas[i].value_str;
-		}
-	}
-	return std::string();
-}
-
-
-void TSql::setStr(const std::string& key, const std::string& value)
-{
-	for (int i = 0; i < TSql::DATA_MAX_COUNT; ++i)
-	{
-		if (m_datas[i].key == key)
-		{
-			m_datas[i].value_str = key;
-			return;
-		}
-		else if (m_datas[i].key.empty())
-		{
-			m_datas[i].key = key;
-			m_datas[i].value_str = value;
-			m_datas[i].value_int = 0;
-			return;
-		}
-	}
-}
-
-int TSql::getInt(const std::string& key) const
-{
-	for (int i = 0; i < TSql::DATA_MAX_COUNT; ++i)
-	{
-		if (m_datas[i].key == key)
-		{
-			return m_datas[i].value_int;
-		}
-	}
-
-	return -1;
-}
-
-void TSql::setInt(const std::string& key, const int& value)
-{
-	for (int i = 0; i < TSql::DATA_MAX_COUNT; ++i)
-	{
-		if (m_datas[i].key == key)
-		{
-			m_datas[i].value_int = value;
-			return;
-		}
-		else if (m_datas[i].key.empty())
-		{
-			m_datas[i].key = key;
-			m_datas[i].value_str = std::string();
-			m_datas[i].value_int = value;
-			return;
-		}
-	}
-}
-

@@ -1,6 +1,14 @@
 #pragma once
 #include<string>
+#include"bplustree.h"
+
+template<typename T>
 struct SqlData
+{
+	T value;
+};
+
+struct MetaSql
 {
 	std::string key;
 	std::string value_str;
@@ -23,22 +31,17 @@ public:
 		概述：关闭数据库
 	*/
 	void close();
-	/*
-		概述：根据key返回string的值
-	*/
+	
 	std::string getStr(const std::string& key)const;
-	/*
-		概述：返回key对应的int型value
-	*/
-	int getInt(const std::string& key)const;
-	/*
-		概述：设置key-value（string）如果存在key则覆盖对应的string的值
-	*/
-	void setStr(const std::string& key,const std::string& value);
-	/*
-		概述：设置key-value（int）如果存在key则覆盖对应的int的值
-	*/
-	void setInt(const std::string& key,const int& value);
+	
+	template<typename T>
+	T get(const std::string& key);
+	
+	template<typename T>
+	void TSql::set(const std::string& key, const T& value);
+
+	template<typename T>
+	int getType()const;
 
 public :
 	/*
@@ -47,8 +50,8 @@ public :
 	static const int DATA_MAX_COUNT = 10240;
 
 private :
-	SqlData m_datas[TSql::DATA_MAX_COUNT];
-	
+	MetaSql m_datas[TSql::DATA_MAX_COUNT];
+	bplus_tree* m_pTree;
 	/*
 		概述：数据存放路径
 	*/
