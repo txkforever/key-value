@@ -18,6 +18,17 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lib\bplustree.c" />
+    <ClCompile Include="lib\HasCode.cpp" />
+    <ClCompile Include="lib\TSql.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lib\bplustree.h" />
+    <ClInclude Include="lib\HasCode.h" />
+    <ClInclude Include="lib\tick.h" />
+    <ClInclude Include="lib\TSql.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3A879478-C356-443B-B942-C7EE8FD753C9}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -148,13 +159,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="tick.h" />
-    <ClInclude Include="TSql.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="TSql.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

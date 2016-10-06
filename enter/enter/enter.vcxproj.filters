@@ -13,27 +13,36 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="头文件\SqlData">
-      <UniqueIdentifier>{30634d5e-491e-4799-8a1d-b94cf2e8e12a}</UniqueIdentifier>
+    <Filter Include="头文件\lib">
+      <UniqueIdentifier>{0cdbf127-fa11-402c-b57e-b7a23ba148f8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="源文件\SqlData">
-      <UniqueIdentifier>{cff66067-7345-414b-9077-f21f91cac509}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="头文件\Utils">
-      <UniqueIdentifier>{ccb6527a-dbba-4ac4-96e9-c4cf8d7e80e1}</UniqueIdentifier>
+    <Filter Include="源文件\lib">
+      <UniqueIdentifier>{4d88f87d-7da7-443e-81c2-407837a47cda}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TSql.h">
-      <Filter>头文件\SqlData</Filter>
-    </ClInclude>
-    <ClInclude Include="tick.h">
-      <Filter>头文件\Utils</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="TSql.cpp">
-      <Filter>源文件\SqlData</Filter>
+    <ClCompile Include="lib\bplustree.c">
+      <Filter>源文件\lib</Filter>
     </ClCompile>
+    <ClCompile Include="lib\TSql.cpp">
+      <Filter>源文件\lib</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\HasCode.cpp">
+      <Filter>源文件\lib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lib\bplustree.h">
+      <Filter>头文件\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\tick.h">
+      <Filter>头文件\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\TSql.h">
+      <Filter>头文件\lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\HasCode.h">
+      <Filter>头文件\lib</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
